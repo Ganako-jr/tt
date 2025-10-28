@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SS3 Timetable — By Ganako</title>
+
+<!-- PDF libs -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+  :root{
+    --accent:#2563eb; --accent-2:#1e40af;
+    --bg:#f6f9fb; --card:#ffffff; --border:#e6edf6;
+    --muted:#6b7280; --text:#071124; --radius:14px;
+    --chip-math:#2563eb; --chip-english:#10b981; --chip-chemistry:#06b6d4; --chip-physics:#7c3aed; --chip-biology:#f59e0b;
+    font-family: Inter, Poppins, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  }
+  [data-theme="dark"]{
+    --bg:#061025; --card:#071428; --border:#122033; --text:#e6eef8; --muted:#94a3b8;
+  }
+  html,body{height:100%; margin:0; background:var(--bg); color:var(--text);}
+  body{display:flex; flex-direction:column; align-items:center; padding:14px 12px 80px; transition:all .2s ease;}
+
+  /* header */
+  header{ width:100%; max-width:980px; display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; }
+  .title { display:flex; flex-direction:column; }
+  h1{ margin:0; color:var(--accent); font-size:1.25rem; }
+  .sub { color:var(--muted); margin-top:4px; font-size:0.92rem; }
+
+  /* controls */
+  .controls{ display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+  .controls button{ padding:10px 12px; border-radius:10px; border:0; font-weight:700; cursor:pointer; font-size:0.92rem; }
+  .save{ background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#fff; box-shadow:0 8px 20px rgba(37,99,235,0.12); }
+  .export{ background:linear-gradient(90deg,#059669,#10b981); color:#fff; }
+  .rembtn{ background:linear-gradient(90deg,#db2777,#ef4444); color:#fff; }
+  .theme{ background:#334155; color:#fff; }
+  .clear{ background:transparent; border:1px solid var(--accent); color:var(--accent); }
+
+  /* card & legend */
+  .card{ width:100%; max-width:980px; background:var(--card); border-radius:14px; border:1px solid var(--border); box-shadow:0 12px 30px rgba(2,6,23,0.06); overflow:hidden; }
+  .meta{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 14px; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+  .legend{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .legend .item{ display:flex; gap:8px; align-items:center; font-weight:700; color:var(--muted); font-size:0.92rem; }
+  .dot{ width:14px; height:14px; border-radius:4px; }
+
+  /* table */
+  .table-wrap{ width:100%; overflow:auto; -webkit-overflow-scrolling:touch; }
+  table{ width:100%; min-width:640px; border-collapse:collapse; }
+  thead th{ position:sticky; top:0; z-index:4; background:linear-gradient(90deg,var(--accent),var(--accent-2)); color:#fff; padding:12px; font-weight:800; font-size:0.95rem; }
+  th, td{ padding:12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  td.day{ text-align:left; font-weight:800; color:var(--muted); padding-left:18px; min-width:110px; }
+  td[contenteditable]{ min-height:44px; position:relative; text-align:left; padding-left:12px; border-radius:8px; cursor:text; }
+  td[contenteditable]:focus{ outline:none; background: rgba(0,0,0,0.03); }
+  td.empty::after{ content: attr(data-placeholder); position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; opacity:0.85; }
+
+  /* chips */
+  .chip{ display:inline-block; padding:6px 10px; border-radius:999px; color:white; font-weight:800; font-size:0.92rem; }
+  .chip-math{ background:var(--chip-math); } .chip-english{ background:var(--chip-english); }
+  .chip-chemistry{ background:var(--chip-chemistry); } .chip-physics{ background:var(--chip-physics); } .chip-biology{ background:var(--chip-biology); }
+
+  /* footer */
+  footer{ width:100%; max-width:980px; text-align:center; color:var(--muted); margin-top:12px; font-size:0.9rem; }
+
+  /* toast */
+  .toast{ position:fixed; right:16px; bottom:16px; z-index:1200; display:flex; flex-direction:column; gap:8px; align-items:flex-end; }
+  .toast .card{ width:320px; padding:12px 14px; border-radius:10px; box-shadow:0 12px 30px rgba(2,6,23,0.2); }
+
+  /* modal */
+  .modal{ position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(2,6,23,0.45); z-index:900; }
+  .modal-card{ width:94%; max-width:420px; background:var(--card); border-radius:12px; padding:14px; border:1px solid var(--border); box-shadow:0 16px 50px rgba(2,6,23,0.35); }
+  label{ display:block; margin-bottom:6px; color:var(--muted); font-weight:700; }
+  select,input[type="text"]{ width:100%; padding:9px 10px; border-radius:8px; border:1px solid var(--border); background:transparent; color:var(--text); }
+
+  /* responsiveness */
+  @media (max-width:720px){
+    header{ flex-direction:column; align-items:flex-start; gap:10px; }
+    .controls{ width:100%; display:flex; gap:8px; }
+    .controls button{ flex:1 1 auto; padding:12px; font-size:0.92rem; }
+    table{ min-width:520px; }
+  }
+  @media (max-width:520px){
+    table{ min-width:460px; }
+    td[contenteditable]{ min-height:54px; padding-left:12px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title">
+    <h1>SS3 Timetable</h1>
+    <div class="sub">An-Nur Model Islamic School — editable & smart</div>
+  </div>
+
+  <div class="controls" role="toolbar">
+    <button id="saveBtn" class="save" title="Save">💾 Save</button>
+    <button id="exportBtn" class="export" title="Export PDF">📄 Export</button>
+    <button id="openRem" class="rembtn" title="Add Reminder">⏰ Remind</button>
+    <button id="themeBtn" class="theme" title="Toggle theme">🌙</button>
+    <button id="clearBtn" class="clear" title="Clear data">🧹</button>
+  </div>
+</header>
+
+<div class="card" id="cardRoot">
+  <div class="meta">
+    <div class="legend" aria-hidden="true">
+      <div class="item"><div class="dot" style="background:var(--chip-math)"></div>Math</div>
+      <div class="item"><div class="dot" style="background:var(--chip-english)"></div>English</div>
+      <div class="item"><div class="dot" style="background:var(--chip-chemistry)"></div>Chemistry</div>
+      <div class="item"><div class="dot" style="background:var(--chip-physics)"></div>Physics</div>
+      <div class="item"><div class="dot" style="background:var(--chip-biology)"></div>Biology</div>
+    </div>
+    <div id="nextReminder" style="font-weight:700; color:var(--muted);">No reminders set</div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="timetable" aria-label="SS3 timetable">
+      <thead>
+        <tr><th>Day</th><th>Time</th><th>Period 1</th><th>Period 2</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="day">Monday</td><td contenteditable="true" data-placeholder="🕒 Enter time"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td></tr>
+        <tr><td class="day">Tuesday</td><td contenteditable="true" data-placeholder="🕒 Enter time"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td></tr>
+        <tr><td class="day">Wednesday</td><td contenteditable="true" data-placeholder="🕒 Enter time"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td></tr>
+        <tr><td class="day">Thursday</td><td contenteditable="true" data-placeholder="🕒 Enter time"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td></tr>
+        <tr><td class="day">Friday</td><td contenteditable="true" data-placeholder="🕒 Enter time"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td></tr>
+        <tr><td class="day">Saturday</td><td contenteditable="true" data-placeholder="🕒 Enter time"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td></tr>
+        <tr><td class="day">Sunday</td><td contenteditable="true" data-placeholder="🕒 Enter time"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td><td contenteditable="true" data-placeholder="✏️ Click to edit"></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<footer>
+  © <span id="year"></span> <a href="https://ganako-jr.github.io/portfolio" target="_blank" style="color:var(--accent); text-decoration:underline;">Ibrahim M. Ganako</a> — <em>Code Your Dreams!</em> • <a href="guide.html" style="color:var(--accent); text-decoration:underline;">How to use</a>
+</footer>
+
+<!-- reminder modal -->
+<div id="remModal" class="modal" style="display:none;" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <h3 style="margin:6px 0; color:var(--accent);">⏰ Add Reminder (5 minutes before)</h3>
+
+    <label>Day</label>
+    <select id="rDay">
+      <option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option>
+    </select>
+
+    <label style="margin-top:8px;">Period</label>
+    <select id="rPeriod"><option value="1">Period 1</option><option value="2">Period 2</option></select>
+
+    <label style="margin-top:8px;">Message (optional)</label>
+    <input id="rMsg" type="text" placeholder="e.g. Math with Miss Aisha">
+
+    <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+      <button id="rCancel" style="background:transparent; border:1px solid var(--border); padding:9px 12px; border-radius:8px;">Cancel</button>
+      <button id="rSave" style="background:var(--accent); color:white; padding:9px 12px; border-radius:8px;">Save</button>
+    </div>
+
+    <p style="margin-top:10px; color:var(--muted); font-size:0.9rem;">Reminder uses your manually-entered Time cell (format: <code>HH:MM</code> or <code>HH:MM - HH:MM</code>). It will notify 5 minutes before the period start.</p>
+  </div>
+</div>
+
+<!-- toast container -->
+<div class="toast" id="toastHost" aria-live="polite" style="display:none;"></div>
+
+<script>
+(() => {
+  // keys
+  const STORAGE = 'ss3_timetable_index_v1';
+  const REMS = 'ss3_timetable_rems_v1';
+  const THEME = 'ss3_timetable_theme_v1';
+
+  // subject -> chip mapping
+  const SUBS = [
+    {re:/\bmath\b/i, cls:'chip-math'},
+    {re:/\benglish\b/i, cls:'chip-english'},
+    {re:/\bchem(is|istry)?\b/i, cls:'chip-chemistry'},
+    {re:/\bphysics?\b/i, cls:'chip-physics'},
+    {re:/\bbiology\b/i, cls:'chip-biology'},
+  ];
+
+  const table = document.getElementById('timetable');
+  const saveBtn = document.getElementById('saveBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const openRem = document.getElementById('openRem');
+  const themeBtn = document.getElementById('themeBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const remModal = document.getElementById('remModal');
+  const rSave = document.getElementById('rSave');
+  const rCancel = document.getElementById('rCancel');
+  const toastHost = document.getElementById('toastHost');
+  const nextReminderEl = document.getElementById('nextReminder');
+
+  // helpers
+  function updatePlaceholders(){
+    document.querySelectorAll('td[contenteditable]').forEach(td=>{
+      td.classList.toggle('empty', td.textContent.trim()==='');
+    });
+  }
+  function placeCaretAtEnd(el){
+    el.focus();
+    if(window.getSelection && document.createRange){
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  }
+
+  // focus when clicking placeholder cell (mobile friendly)
+  document.addEventListener('click', e=>{
+    const t = e.target;
+    if(t.matches('td[contenteditable].empty')) { placeCaretAtEnd(t); }
+  });
+
+  // auto-assign chips in subject cells
+  function autoChip(td){
+    if(td.cellIndex === 1) return; // skip time column
+    const txt = td.textContent || '';
+    if(!txt.trim()) return;
+    let html = txt.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
+    SUBS.forEach(s=> html = html.replace(s.re, match => `<span class="chip ${s.cls}">${match}</span>`));
+    td.innerHTML = html;
+  }
+
+  // save/load table
+  function saveTable(){
+    const rows = [...table.querySelectorAll('tbody tr')];
+    const data = rows.map(r => {
+      const tds = r.querySelectorAll('td[contenteditable]');
+      return [...tds].map(td => td.innerHTML.trim());
+    });
+    localStorage.setItem(STORAGE, JSON.stringify(data));
+    updatePlaceholders();
+  }
+  function loadTable(){
+    const raw = localStorage.getItem(STORAGE);
+    if(!raw) return;
+    try{
+      const data = JSON.parse(raw);
+      [...table.querySelectorAll('tbody tr')].forEach((r,i)=>{
+        const tds = r.querySelectorAll('td[contenteditable]');
+        if(data[i]) tds.forEach((td,j)=> td.innerHTML = data[i][j] || '');
+      });
+    }catch(e){}
+    // auto-chip run
+    document.querySelectorAll('td[contenteditable]').forEach(td=> { if(td.cellIndex!==1) autoChip(td); });
+    updatePlaceholders();
+  }
+
+  // export PDF
+  async function exportPDF(){
+    try{
+      const { jsPDF } = window.jspdf;
+      const card = document.getElementById('cardRoot');
+      const wrapper = document.createElement('div');
+      wrapper.style.padding='18px'; wrapper.style.width='1100px';
+      const header = document.createElement('div');
+      header.innerHTML = `<div style="font-weight:800; font-size:18px;">An-Nur Model Islamic School — SS3 Timetable by Ibrahim M. Ganako</div>
+                          <div style="color:gray; margin-top:6px; font-size:12px;">${(new Date()).toLocaleString()}</div>`;
+      wrapper.appendChild(header);
+      const clone = card.cloneNode(true);
+      clone.style.boxShadow = 'none';
+      clone.style.borderRadius = '6px';
+      wrapper.appendChild(clone);
+      document.body.appendChild(wrapper);
+      const canvas = await html2canvas(wrapper, { scale:2, useCORS:true, backgroundColor: null });
+      const img = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p','pt','a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const imgProps = pdf.getImageProperties(img);
+      const pdfW = pageW - 40;
+      const pdfH = (imgProps.height * pdfW) / imgProps.width;
+      pdf.addImage(img, 'PNG', 20, 20, pdfW, pdfH);
+      pdf.setFontSize(10);
+      pdf.text(`Generated by Ibrahim M. Ganako — ${new Date().toLocaleDateString()}`, 20, pdf.internal.pageSize.getHeight() - 30);
+      pdf.save(`SS3_Timetable_${(new Date()).toISOString().slice(0,10)}.pdf`);
+      document.body.removeChild(wrapper);
+    }catch(err){ console.error(err); alert('PDF export failed — ' + (err && err.message || err)); }
+  }
+
+  // toast creation
+  function showToast(title, text){
+    toastHost.style.display = 'flex';
+    const t = document.createElement('div');
+    t.className = 'card';
+    t.style.background = 'linear-gradient(90deg,#fff,#f8fbff)';
+    t.innerHTML = `<div style="font-weight:800; color:${getComputedStyle(document.documentElement).getPropertyValue('--accent')}; margin-bottom:6px;">${title}</div><div style="color:var(--muted)">${text}</div>`;
+    toastHost.appendChild(t);
+    // auto remove after 10s
+    setTimeout(()=> { t.style.opacity = '0'; setTimeout(()=> t.remove(), 500); if(!toastHost.children.length) toastHost.style.display='none'; }, 10000);
+  }
+
+  // notifications permission
+  function requestNotification(){ if(!('Notification' in window)) return Promise.resolve(false); if(Notification.permission === 'granted') return Promise.resolve(true); if(Notification.permission !== 'denied') return Notification.requestPermission().then(p => p === 'granted'); return Promise.resolve(false); }
+
+  // reminders storage
+  function loadRems(){ try{ return JSON.parse(localStorage.getItem(REMS) || '[]'); }catch(e){ return []; } }
+  function saveRems(list){ localStorage.setItem(REMS, JSON.stringify(list)); renderNextReminder(); }
+  function addRem(r){ const arr=loadRems(); r.id='r_'+Date.now(); arr.push(r); saveRems(arr); }
+
+  // helper parse times from cell; returns Date objects for period starts (relative to today)
+  function parsePeriodStarts(text){
+    // returns array of Date objects (length 0..2)
+    const clean = (text||'').trim();
+    if(!clean) return [];
+    const range = clean.match(/(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})/);
+    if(range){
+      const [a,b] = [range[1], range[2]];
+      const p1 = parseHMToDate(a);
+      const p2 = parseHMToDate(b);
+      if(p1 && p2){
+        const mid = new Date((p1.getTime()+p2.getTime())/2);
+        return [p1, mid];
+      }
+    }
+    // single time
+    const single = clean.match(/(\d{1,2}:\d{2})/);
+    if(single){
+      const d = parseHMToDate(single[1]);
+      return d ? [d] : [];
+    }
+    return [];
+  }
+  function parseHMToDate(hm){
+    const [h,m] = hm.split(':').map(x=>parseInt(x,10));
+    if(Number.isFinite(h) && Number.isFinite(m)){
+      const d = new Date(); d.setHours(h,m,0,0); return d;
+    }
+    return null;
+  }
+
+  // periodic checker (every 20s) — triggers 5min-before reminders
+  const fired = new Set();
+  function checkReminders(){
+    const rems = loadRems();
+    if(!rems.length) { nextReminderEl.textContent = 'No reminders set'; return; }
+    const now = new Date();
+    const todayName = now.toLocaleDateString('en-US', {weekday:'long'});
+    // compute next upcoming for display
+    const upcoming = [];
+    rems.forEach(r => {
+      const row = findRow(r.day);
+      if(!row) return;
+      const cellText = row.querySelectorAll('td')[1].textContent;
+      const starts = parsePeriodStarts(cellText);
+      const idx = r.period - 1;
+      if(!starts[idx]) return;
+      const start = nextOccurrenceForDayAndTime(r.day, starts[idx].getHours(), starts[idx].getMinutes());
+      const trigger = new Date(start.getTime() - 5*60*1000);
+      // if within minute window and not fired
+      const key = r.id + '|' + trigger.toISOString().slice(0,16);
+      if(now >= trigger && now - trigger < 70*1000 && !fired.has(key)){
+        fired.add(key);
+        // notify
+        requestNotification().then(ok=>{
+          if(ok){
+            try{ new Notification('Timetable Reminder', { body: r.msg || `${r.day} Period ${r.period} starting soon` }); } catch(e){}
+          }
+          // show toast + fallback alert
+          showToast('Reminder', r.msg || `${r.day} Period ${r.period} starting in 5 minutes`);
+          try{ /* also keep a small alert for very old browsers */ }catch(e){}
+        });
+      }
+      // push upcoming
+      upcoming.push({r, trigger});
+    });
+    // set next reminder display
+    if(upcoming.length){
+      upcoming.sort((a,b)=> a.trigger - b.trigger);
+      const nxt = upcoming[0];
+      const t = nxt.trigger;
+      nextReminderEl.textContent = `Next: ${nxt.r.day} ${nxt.r.time || ''} • ${nxt.r.msg || 'Reminder'}`;
+    } else nextReminderEl.textContent = 'No reminders set';
+  }
+  function findRow(day){
+    const rows = document.querySelectorAll('#timetable tbody tr');
+    for(const r of rows) if(r.querySelector('td').textContent.trim().toLowerCase() === day.toLowerCase()) return r;
+    return null;
+  }
+  function nextOccurrenceForDayAndTime(day, hh, mm){
+    const idx = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].indexOf(day);
+    if(idx < 0) return null;
+    const now = new Date();
+    const todayIdx = now.getDay();
+    let delta = (idx - todayIdx + 7) % 7;
+    const d = new Date(); d.setHours(hh,mm,0,0);
+    if(delta === 0 && d <= new Date()) delta = 7;
+    d.setDate(d.getDate() + delta);
+    return d;
+  }
+
+  // UI wiring
+  saveBtn.addEventListener('click', ()=>{ saveTable(); alert('Saved ✔'); });
+  exportBtn.addEventListener('click', ()=> exportPDF());
+  themeBtn.addEventListener('click', ()=> {
+    const cur = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
+    document.body.dataset.theme = cur; localStorage.setItem(THEME, cur);
+  });
+  clearBtn.addEventListener('click', ()=> {
+    if(confirm('Clear all timetable data?')){
+      document.querySelectorAll('td[contenteditable]').forEach(td => td.innerHTML = '');
+      localStorage.removeItem(STORAGE);
+    }
+  });
+
+  // open reminder modal
+  openRem.addEventListener('click', async ()=> {
+    remModal.style.display = 'flex'; remModal.setAttribute('aria-hidden','false');
+    await requestNotification();
+  });
+  rCancel.addEventListener('click', ()=> { remModal.style.display = 'none'; remModal.setAttribute('aria-hidden','true'); rMsg.value=''; });
+  rSave.addEventListener('click', ()=> {
+    const day = document.getElementById('rDay').value;
+    const period = parseInt(document.getElementById('rPeriod').value,10);
+    const msg = document.getElementById('rMsg').value.trim();
+    // validate time cell exists
+    const row = findRow(day);
+    if(!row){ alert('Day row not found'); return; }
+    const timeText = row.querySelectorAll('td')[1].textContent.trim();
+    const starts = parsePeriodStarts(timeText);
+    if(!starts.length || !starts[period - 1]) { alert('Set the Time cell for that day first (HH:MM or HH:MM - HH:MM)'); return; }
+    // store reminder with computed time text for display
+    const hh = String(starts[period-1].getHours()).padStart(2,'0');
+    const mm = String(starts[period-1].getMinutes()).padStart(2,'0');
+    addRem({ day, period, time: `${hh}:${mm}`, msg });
+    remModal.style.display = 'none'; remModal.setAttribute('aria-hidden','true');
+    document.getElementById('rMsg').value = '';
+    alert('Reminder saved — you will be notified 5 minutes before the class.');
+  });
+
+  // save on input (autosave) and try chip assignment
+  table.addEventListener('input', e=> {
+    const td = e.target;
+    if(!td || td.tagName !== 'TD' || !td.isContentEditable) return;
+    window.requestAnimationFrame(()=> {
+      if(td.cellIndex !== 1) autoChip(td); // auto chip for subject columns
+      updatePlaceholders();
+      saveTable();
+    });
+  });
+
+  // init run
+  (function init(){
+    const theme = localStorage.getItem(THEME) || 'light';
+    document.body.dataset.theme = theme;
+    loadTable();
+    updatePlaceholders();
+    // auto-chip initial
+    document.querySelectorAll('td[contenteditable]').forEach(td => { if(td.cellIndex !== 1) autoChip(td); });
+    // reminders checker
+    setInterval(checkReminders, 20*1000);
+    setTimeout(checkReminders, 2000);
+    document.getElementById('year').textContent = new Date().getFullYear();
+  })();
+
+  // expose some functions (for debugging)
+  window.exportPDF = exportPDF;
+  window.saveTable = saveTable;
+
+})();
+</script>
+</body>
+</html>

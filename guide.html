@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>How to Use — SS3 Timetable | Ganako</title>
+<style>
+  :root{ --accent:#2563eb; --bg:#f6f9fb; --card:#fff; --muted:#6b7280; --text:#071124; --border:#e6edf6; --radius:14px; font-family: Inter, Poppins, system-ui, -apple-system, "Segoe UI", Roboto, Arial; }
+  [data-theme="dark"]{ --bg:#061025; --card:#071428; --text:#e6eef8; --muted:#94a3b8; --border:#122033; }
+  html,body{height:100%; margin:0; background:var(--bg); color:var(--text);}
+  body{ display:flex; flex-direction:column; align-items:center; padding:18px 12px 80px; }
+  .page{ width:100%; max-width:980px; }
+  header{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; }
+  h1{ margin:0; color:var(--accent); font-size:1.25rem; }
+  .sub{ color:var(--muted); font-size:0.95rem; }
+  .card{ background:var(--card); border-radius:14px; border:1px solid var(--border); padding:18px; box-shadow:0 12px 30px rgba(2,6,23,0.06); }
+  ul{ padding-left:18px; }
+  li{ margin-bottom:10px; line-height:1.5; }
+  .nav{ display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+  .nav a{ text-decoration:none; background:var(--accent); color:#fff; padding:10px 12px; border-radius:10px; font-weight:700; }
+  footer{ margin-top:18px; color:var(--muted); text-align:center; }
+  @media (max-width:720px){ .nav{ flex-direction:column; } }
+</style>
+</head>
+<body data-theme="light">
+<div class="page">
+  <header>
+    <div>
+      <h1>SS3 Timetable — How to use</h1>
+      <div class="sub">Simple guide for your classmates — made by Genius G</div>
+    </div>
+    <div class="nav">
+      <a href="index.html">⬅️ Back to Timetable</a>
+    </div>
+  </header>
+
+  <div class="card">
+    <h2 style="color:var(--accent); margin-top:0;">Hey SS3 Crew! 👋</h2>
+    <p>Use this page if you're not sure how the timetable works. Keep it open or share with classmates.</p>
+
+    <ul>
+      <li><strong>Edit cells:</strong> Tap any cell (Time, Period 1, Period 2). Cells show <em>Click to edit</em> hints until you type.</li>
+      <li><strong>Time format:</strong> Enter times in <code>HH:MM</code> or a range <code>HH:MM - HH:MM</code>. For two periods use a range — Period 1 uses the first time and Period 2 uses the midpoint.</li>
+      <li><strong>Auto colors:</strong> When you type subject names like “Math”, “English”, “Physics” the app turns them into colored chips automatically.</li>
+      <li><strong>Save:</strong> Changes auto-save to your browser. Press <strong>Save</strong> to be sure. Your data stays on your device only.</li>
+      <li><strong>Reminders:</strong> Click <strong>Remind</strong> → pick Day & Period → set message → Save. Reminders use the time you entered and will notify <strong>5 minutes before</strong> the class.</li>
+      <li><strong>Notifications:</strong> Allow browser notifications when prompted. If you block them, the app still shows a <em>custom toast</em> in-page as a fallback.</li>
+      <li><strong>Export PDF:</strong> Tap <strong>Export</strong> to download a PDF snapshot (includes school header and your signature/date).</li>
+      <li><strong>Clear:</strong> Use <strong>Clear</strong> only if you want to wipe your saved timetable (this clears your browser storage).</li>
+      <li><strong>Mobile tips:</strong> On phones, tap a cell then use the keyboard to edit. Double-tap time cells if you prefer quick prompts.</li>
+    </ul>
+
+    <p style="margin-top:6px;">If you need help, ask <strong>Genius G (Ibrahim)</strong> — I set this up for you. 😎</p>
+
+    <div style="margin-top:12px;">
+      <a href="index.html" style="text-decoration:none; padding:10px 12px; background:var(--accent); color:#fff; border-radius:8px; font-weight:700;">Open Timetable</a>
+    </div>
+  </div>
+
+  <footer>
+    © <span id="yr"></span> <a href="https://ganako-jr.github.io/portfolio" target="_blank" style="color:var(--accent); text-decoration:underline;">Ibrahim M. Ganako</a> — Code Your Dreams!
+  </footer>
+</div>
+
+<script>
+  document.getElementById('yr').textContent = new Date().getFullYear();
+  // keep theme consistent with index if user toggled earlier
+  const THEME = 'ss3_timetable_theme_v1';
+  const t = localStorage.getItem(THEME) || 'light';
+  document.body.dataset.theme = t;
+</script>
+</body>
+</html>
