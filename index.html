@@ -166,6 +166,8 @@
 <div class="toast" id="toastHost" aria-live="polite" style="display:none;"></div>
 
 <script>
+document.getElementById('year').textContent = new Date().getFullYear();
+
 (() => {
   // keys
   const STORAGE = 'ss3_timetable_index_v1';
